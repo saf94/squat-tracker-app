@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { StyleSheet, TouchableOpacity, View, Animated } from 'react-native';
+import { StyleSheet, TouchableOpacity, View, Animated, Dimensions, ScrollView } from 'react-native';
 import { ThemedText } from './ThemedText';
 import { ThemedView } from './ThemedView';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { Colors } from '@/constants/Colors';
+import { useColorScheme } from '@/hooks/useColorScheme';
 
 interface HourData {
   key: string;
@@ -16,6 +18,9 @@ interface HourData {
 
 export function SquatTracker() {
   const { getSquatStatus, toggleSquat } = useLocalStorage();
+  const colorScheme = useColorScheme();
+  const colors = Colors[colorScheme ?? 'light'];
+  
   const [pressAnimations] = useState(() => 
     Array.from({ length: 9 }, () => new Animated.Value(1))
   );
@@ -60,6 +65,10 @@ export function SquatTracker() {
     });
   }
 
+  const completedCount = hours.filter(h => h.isCompleted).length;
+  const availableCount = hours.filter(h => !h.isFuture).length;
+  const progressPercentage = availableCount > 0 ? (completedCount / availableCount) * 100 : 0;
+
   const handleHourPress = (hourKey: string, index: number) => {
     const hour = hours[index];
     
@@ -85,261 +94,255 @@ export function SquatTracker() {
     toggleSquat(currentDate, hourKey);
   };
 
+  const getTaskColor = (index: number) => {
+    const taskColors = [colors.taskOrange, colors.taskYellow, colors.taskBeige, colors.taskBlue, colors.taskPurple];
+    return taskColors[index % taskColors.length];
+  };
+
   return (
-    <ThemedView style={styles.container}>
-      <ThemedView style={styles.headerContainer}>
-        <ThemedText type="title" style={styles.dateText}>
-          {formattedDate}
-        </ThemedText>
-      </ThemedView>
-      
-      <ThemedView style={styles.contentContainer}>
-        <View style={styles.hoursGrid}>
-          {hours.map((hour, index) => (
-            <Animated.View
-              key={hour.key}
-              style={[
-                styles.hourButtonContainer,
-                { transform: [{ scale: pressAnimations[index] }] },
-              ]}
-            >
-              <TouchableOpacity
+    <ThemedView style={[styles.container, { backgroundColor: colors.background }]}>
+      {/* Content Section with ScrollView */}
+      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+        <View style={styles.contentContainer}>
+          {/* Today's Progress Card */}
+          <View style={[styles.progressCard, { backgroundColor: colors.surface }]}>
+            <ThemedText style={[styles.cardTitle, { color: colors.text }]}>
+              Today's Squat Schedule
+            </ThemedText>
+            <ThemedText style={[styles.cardSubtitle, { color: colors.icon }]}>
+              {formattedDate}
+            </ThemedText>
+          </View>
+          
+          {/* Hours Grid */}
+          <View style={styles.hoursGrid}>
+            {hours.map((hour, index) => (
+              <Animated.View
+                key={hour.key}
                 style={[
-                  styles.hourButton,
-                  hour.isCompleted && styles.completedHour,
-                  hour.isMissed && styles.missedHour,
-                  hour.isFuture && styles.futureHour,
-                  hour.isCurrentHour && !hour.isCompleted && styles.currentHour,
+                  styles.hourButtonContainer,
+                  { transform: [{ scale: pressAnimations[index] }] },
                 ]}
-                onPress={() => handleHourPress(hour.key, index)}
-                activeOpacity={hour.isFuture ? 1 : 0.8}
-                disabled={hour.isFuture}
               >
-                <ThemedText
+                <TouchableOpacity
                   style={[
-                    styles.hourText,
-                    hour.isCompleted && styles.completedHourText,
-                    hour.isMissed && styles.missedHourText,
-                    hour.isFuture && styles.futureHourText,
-                    hour.isCurrentHour && !hour.isCompleted && styles.currentHourText,
+                    styles.hourButton,
+                    { backgroundColor: colors.surface, borderColor: colors.border },
+                    hour.isCompleted && [styles.completedHour, { backgroundColor: colors.success, borderColor: colors.success }],
+                    hour.isMissed && [styles.missedHour, { backgroundColor: colors.error, borderColor: colors.error }],
+                    hour.isFuture && [styles.futureHour, { backgroundColor: colors.surfaceVariant, borderColor: colors.border }],
+                    hour.isCurrentHour && !hour.isCompleted && [styles.currentHour, { backgroundColor: colors.warning, borderColor: colors.warning }],
                   ]}
+                  onPress={() => handleHourPress(hour.key, index)}
+                  activeOpacity={hour.isFuture ? 1 : 0.8}
+                  disabled={hour.isFuture}
                 >
-                  {hour.display}
+                  <ThemedText
+                    style={[
+                      styles.hourText,
+                      { color: colors.text },
+                      hour.isCompleted && styles.completedHourText,
+                      hour.isMissed && styles.completedHourText,
+                      hour.isFuture && [styles.futureHourText, { color: colors.icon }],
+                      hour.isCurrentHour && !hour.isCompleted && [styles.currentHourText, { color: colors.text }],
+                    ]}
+                  >
+                    {hour.display}
+                  </ThemedText>
+                  
+                  {/* Status Icons */}
+                  {hour.isCompleted && (
+                    <View style={[styles.statusContainer, { backgroundColor: colors.surface }]}>
+                      <ThemedText style={[styles.statusIcon, { color: colors.success }]}>✓</ThemedText>
+                    </View>
+                  )}
+                  {hour.isMissed && (
+                    <View style={[styles.statusContainer, { backgroundColor: colors.surface }]}>
+                      <ThemedText style={[styles.statusIcon, { color: colors.error }]}>✗</ThemedText>
+                    </View>
+                  )}
+                  {hour.isCurrentHour && !hour.isCompleted && (
+                    <View style={[styles.statusContainer, { backgroundColor: colors.surface }]}>
+                      <ThemedText style={[styles.statusIcon, { color: colors.warning }]}>⏳</ThemedText>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              </Animated.View>
+            ))}
+          </View>
+          
+          {/* Stats Card */}
+          <View style={[styles.statsCard, { backgroundColor: colors.surface }]}>
+            <View style={styles.statsRow}>
+              <View style={styles.statItem}>
+                <ThemedText style={[styles.statNumber, { color: colors.primary }]}>
+                  {completedCount}
                 </ThemedText>
-                {hour.isCompleted && (
-                  <View style={styles.checkmarkContainer}>
-                    <ThemedText style={styles.checkmark}>✓</ThemedText>
-                  </View>
-                )}
-                {hour.isMissed && (
-                  <View style={styles.crossContainer}>
-                    <ThemedText style={styles.cross}>✗</ThemedText>
-                  </View>
-                )}
-                {hour.isCurrentHour && !hour.isCompleted && (
-                  <View style={styles.hourglassContainer}>
-                    <ThemedText style={styles.hourglass}>⏳</ThemedText>
-                  </View>
-                )}
-              </TouchableOpacity>
-            </Animated.View>
-          ))}
+                <ThemedText style={[styles.statLabel, { color: colors.icon }]}>
+                  Completed
+                </ThemedText>
+              </View>
+              <View style={styles.statDivider} />
+              <View style={styles.statItem}>
+                <ThemedText style={[styles.statNumber, { color: colors.primary }]}>
+                  {Math.round(progressPercentage)}%
+                </ThemedText>
+                <ThemedText style={[styles.statLabel, { color: colors.icon }]}>
+                  Progress
+                </ThemedText>
+              </View>
+            </View>
+          </View>
         </View>
-        
-        <ThemedView style={styles.statsContainer}>
-          <ThemedText style={styles.statsText}>
-            Today&apos;s Progress: {hours.filter(h => h.isCompleted).length} of {hours.filter(h => !h.isFuture).length} available hours
-          </ThemedText>
-        </ThemedView>
-      </ThemedView>
+      </ScrollView>
     </ThemedView>
   );
 }
 
+const { width } = Dimensions.get('window');
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
   },
-  headerContainer: {
-    paddingTop: 20,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
-  },
-  dateText: {
-    textAlign: 'center',
-    color: '#1e293b',
+  scrollContainer: {
+    flex: 1,
   },
   contentContainer: {
-    flex: 1,
+    padding: 20,
+    gap: 20,
+    paddingTop: 20, // Reduced from 40
+  },
+  progressCard: {
     padding: 24,
-  },
-  hoursGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    gap: 16,
-    marginBottom: 32,
-  },
-  hourButtonContainer: {
-    width: '30%',
-    aspectRatio: 1,
-    minWidth: 90,
-  },
-  hourButton: {
-    flex: 1,
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: '#e2e8f0',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#ffffff',
+    borderRadius: 20,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 2,
     },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  cardTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  cardSubtitle: {
+    fontSize: 16,
+    fontWeight: '500',
+    marginBottom: 0, // Removed extra padding below the date
+  },
+  hoursGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  hourButtonContainer: {
+    width: (width - 64) / 3,
+    aspectRatio: 1,
+  },
+  hourButton: {
+    flex: 1,
+    borderRadius: 20,
+    borderWidth: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
     shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowRadius: 8,
+    elevation: 4,
+    position: 'relative',
   },
   completedHour: {
-    backgroundColor: '#10b981',
-    borderColor: '#10b981',
-    shadowColor: '#10b981',
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.2,
   },
   missedHour: {
-    backgroundColor: '#ef4444',
-    borderColor: '#ef4444',
-    shadowColor: '#ef4444',
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.2,
   },
   futureHour: {
-    backgroundColor: '#f1f5f9',
-    borderColor: '#cbd5e1',
     shadowOpacity: 0.05,
   },
   currentHour: {
-    backgroundColor: '#fef3c7',
-    borderColor: '#f59e0b',
-    shadowColor: '#f59e0b',
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.2,
   },
   hourText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
     textAlign: 'center',
-    color: '#374151',
   },
   completedHourText: {
-    color: '#ffffff',
-  },
-  missedHourText: {
-    color: '#ffffff',
+    color: '#FFFFFF',
   },
   futureHourText: {
-    color: '#94a3b8',
+    fontWeight: '500',
   },
   currentHourText: {
-    color: '#92400e',
+    fontWeight: '700',
   },
-  checkmarkContainer: {
+  statusContainer: {
     position: 'absolute',
     top: 8,
     right: 8,
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#ffffff',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 1,
+      height: 2,
     },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
     elevation: 3,
   },
-  checkmark: {
-    fontSize: 14,
+  statusIcon: {
+    fontSize: 12,
     fontWeight: 'bold',
-    color: '#10b981',
   },
-  crossContainer: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#ffffff',
-    justifyContent: 'center',
-    alignItems: 'center',
+  statsCard: {
+    padding: 24,
+    borderRadius: 20,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 1,
+      height: 2,
     },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 3,
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  cross: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#ef4444',
-  },
-  hourglassContainer: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#ffffff',
-    justifyContent: 'center',
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 3,
   },
-  hourglass: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#94a3b8',
-  },
-  statsContainer: {
+  statItem: {
     alignItems: 'center',
-    paddingVertical: 20,
-    paddingHorizontal: 16,
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
+    flex: 1,
   },
-  statsText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#475569',
+  statNumber: {
+    fontSize: 24,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 14,
+    fontWeight: '500',
     textAlign: 'center',
+  },
+  statDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: '#E2E8F0',
   },
 });
