@@ -238,11 +238,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    gap: 12,
+    gap: 8, // Reduced gap to ensure 3 columns fit
   },
   hourButtonContainer: {
-    width: (width - 64) / 3,
+    width: '31%', // Use percentage instead of calculated width
     aspectRatio: 1,
+    marginBottom: 8, // Add bottom margin for rows
   },
   hourButton: {
     flex: 1,
@@ -309,7 +310,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   statsCard: {
-    padding: 24,
+    padding: 20, // Reduced from 24 to make it slightly smaller
     borderRadius: 20,
     shadowColor: '#000',
     shadowOffset: {
