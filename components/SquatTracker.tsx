@@ -21,8 +21,9 @@ export function SquatTracker() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   
+  // Initialize press animations for all 12 hours (10am to 9pm)
   const [pressAnimations] = useState(() => 
-    Array.from({ length: 9 }, () => new Animated.Value(1))
+    Array.from({ length: 12 }, () => new Animated.Value(1))
   );
   
   // Get current date in YYYY-MM-DD format
@@ -40,9 +41,9 @@ export function SquatTracker() {
     day: 'numeric',
   });
 
-  // Generate hours from 10am to 6pm
+  // Generate hours from 10am to 9pm
   const hours: HourData[] = [];
-  for (let i = 10; i <= 18; i++) {
+  for (let i = 10; i <= 21; i++) {
     const hour = i === 12 ? 12 : i > 12 ? i - 12 : i;
     const ampm = i >= 12 ? 'PM' : 'AM';
     const hourKey = `${i.toString().padStart(2, '0')}:00`;
@@ -77,6 +78,11 @@ export function SquatTracker() {
       return;
     }
     
+    // Ensure the animation value exists and is valid
+    if (!pressAnimations[index] || typeof pressAnimations[index].setValue !== 'function') {
+      return;
+    }
+    
     // Animate the button press
     Animated.sequence([
       Animated.timing(pressAnimations[index], {
@@ -102,14 +108,16 @@ export function SquatTracker() {
   return (
     <ThemedView style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Content Section with ScrollView */}
-      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.scrollContainer} 
+        contentContainerStyle={styles.scrollContentContainer}
+        showsVerticalScrollIndicator={false}
+        bounces={true}
+      >
         <View style={styles.contentContainer}>
-          {/* Today's Progress Card */}
-          <View style={[styles.progressCard, { backgroundColor: colors.surface }]}>
-            <ThemedText style={[styles.cardTitle, { color: colors.text }]}>
-              Today's Squat Schedule
-            </ThemedText>
-            <ThemedText style={[styles.cardSubtitle, { color: colors.icon }]}>
+          {/* App Title with Date */}
+          <View style={styles.titleContainer}>
+            <ThemedText style={[styles.appDate, { color: colors.text }]}>
               {formattedDate}
             </ThemedText>
           </View>
@@ -208,32 +216,23 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flex: 1,
   },
+  scrollContentContainer: {
+    flexGrow: 1,
+    paddingBottom: 100, // Account for bottom tab bar height + extra padding
+  },
   contentContainer: {
     padding: 20,
     gap: 20,
     paddingTop: 20, // Reduced from 40
   },
-  progressCard: {
-    padding: 24,
-    borderRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  cardTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    marginBottom: 8,
-  },
-  cardSubtitle: {
-    fontSize: 16,
-    fontWeight: '500',
+  titleContainer: {
+    alignItems: 'center',
     marginBottom: 0, // Removed extra padding below the date
+  },
+  appDate: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginTop: 4,
   },
   hoursGrid: {
     flexDirection: 'row',
