@@ -15,7 +15,7 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
+        headerShown: true,
         tabBarButton: HapticTab,
         tabBarBackground: TabBarBackground,
         tabBarStyle: Platform.select({
@@ -25,11 +25,19 @@ export default function TabLayout() {
           },
           default: {},
         }),
+        headerStyle: {
+          backgroundColor: '#ffffff',
+        },
+        headerTitleStyle: {
+          fontWeight: 'bold',
+          color: '#1e293b',
+        },
+        headerShadowVisible: false,
       }}>
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          title: 'Squat Tracker',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
         }}
       />
